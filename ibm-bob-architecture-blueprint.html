@@ -1,0 +1,331 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>IBM Bob — Architecture Blueprint</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;background:#f8fafc;color:#1e293b;line-height:1.6;font-size:14px}
+.page{max-width:760px;margin:0 auto;padding:40px 24px 60px}
+
+/* Header */
+.header{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#1d4ed8 100%);color:#fff;border-radius:16px;padding:32px 36px;margin-bottom:32px}
+.header-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px;color:#93c5fd}
+.header h1{font-size:1.9rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px}
+.header p{opacity:.75;font-size:.9rem;max-width:520px}
+
+/* Section titles */
+.section-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:#64748b;margin:28px 0 12px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:"";flex:1;height:1px;background:#e2e8f0}
+
+/* Architecture diagram (pure CSS/SVG layout) */
+.arch-diagram{background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:28px;margin-bottom:8px}
+
+/* Layers */
+.layer{margin-bottom:14px}
+.layer-label{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.boxes{display:flex;flex-wrap:wrap;gap:8px}
+.box{border-radius:10px;padding:9px 14px;font-size:.78rem;font-weight:600;display:flex;align-items:flex-start;gap:7px;min-width:120px;flex:1}
+.box-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.box-inner{display:flex;flex-direction:column}
+.box-name{font-weight:700;line-height:1.2}
+.box-desc{font-size:.7rem;font-weight:400;opacity:.75;margin-top:2px;line-height:1.3}
+
+/* Color themes per layer */
+.layer-user   .box{background:#eff6ff;border:1.5px solid #bfdbfe;color:#1e40af}
+.layer-ui     .box{background:#f0fdf4;border:1.5px solid #bbf7d0;color:#14532d}
+.layer-modes  .box{background:#faf5ff;border:1.5px solid #ddd6fe;color:#4c1d95}
+.layer-engine .box{background:#fff7ed;border:1.5px solid #fed7aa;color:#7c2d12}
+.layer-tools  .box{background:#f0f9ff;border:1.5px solid #bae6fd;color:#0c4a6e}
+.layer-config .box{background:#fefce8;border:1.5px solid #fde68a;color:#713f12}
+.layer-ext    .box{background:#fff1f2;border:1.5px solid #fecdd3;color:#881337}
+.layer-llm    .box{background:#f8fafc;border:1.5px solid #cbd5e1;color:#334155}
+
+/* Arrow */
+.arrow{text-align:center;color:#94a3b8;font-size:.85rem;padding:2px 0;letter-spacing:2px}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px}
+.card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px}
+.card-head{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:800;color:#1e293b;margin-bottom:10px}
+.card-head .ci{font-size:1.1rem}
+.item{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:.78rem}
+.item:last-child{border-bottom:none}
+.item .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.item-text{color:#475569}
+.item-bold{font-weight:700;color:#1e293b}
+
+/* Tool groups table */
+.tg-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tg-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:.76rem}
+.tg-item .tg-name{font-weight:700;color:#1e293b;margin-bottom:2px}
+.tg-item .tg-desc{color:#64748b}
+
+/* Flow table */
+.flow-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.flow-table th{background:#f1f5f9;text-align:left;padding:7px 12px;font-size:.7rem;text-transform:uppercase;letter-spacing:.6px;color:#64748b;border:1px solid #e2e8f0}
+.flow-table td{padding:7px 12px;border:1px solid #e2e8f0;vertical-align:top;color:#334155}
+.flow-table tr:nth-child(even) td{background:#f8fafc}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:.68rem;font-weight:700}
+.tag-blue{background:#dbeafe;color:#1e40af}
+.tag-green{background:#dcfce7;color:#14532d}
+.tag-purple{background:#ede9fe;color:#4c1d95}
+.tag-orange{background:#ffedd5;color:#7c2d12}
+
+/* Context window viz */
+.ctxbar{display:flex;height:22px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin:10px 0}
+.ctxbar div{display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:#fff}
+
+/* Footnote */
+footer{margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;font-size:.72rem;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="page">
+
+  
+  <div class="header">
+    <div class="header-badge">🤖 Architecture Blueprint</div>
+    <h1>IBM Bob</h1>
+    <p>AI-powered coding assistant — full system architecture covering the LLM core, mode system, tool categories, context window, MCP extension layer, and configuration hierarchy.</p>
+  </div>
+
+  
+  <div class="section-title">System Layers</div>
+  <div class="arch-diagram">
+
+    
+    <div class="layer layer-user">
+      <div class="layer-label" style="color:#1e40af">👤 User Interface</div>
+      <div class="boxes">
+        <div class="box"><span class="box-icon">🖥️</span><div class="box-inner"><span class="box-name">VS Code Extension</span><span class="box-desc">Bob IDE panel (chat + tools)</span></div></div>
+        <div class="box"><span class="box-icon">🖥️</span><div class="box-inner"><span class="box-name">Bob Shell</span><span class="box-desc">Terminal / CLI interface</span></div></div>
+        <div class="box"><span class="box-icon">🌐</span><div class="box-inner"><span class="box-name">Browser / Web</span><span class="box-desc">Web-based access</span></div></div>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    
+    <div class="layer layer-modes">
+      <div class="layer-label" style="color:#4c1d95">⚙️ Mode System</div>
+      <div class="boxes">
+        <div class="box"><span class="box-icon">🛠️</span><div class="box-inner"><span class="box-name">Agent Mode</span><span class="box-desc">Write, modify, refactor code</span></div></div>
+        <div class="box"><span class="box-icon">📐</span><div class="box-inner"><span class="box-name">Plan Mode</span><span class="box-desc">Architecture &amp; design</span></div></div>
+        <div class="box"><span class="box-icon">❓</span><div class="box-inner"><span class="box-name">Ask Mode</span><span class="box-desc">Explain &amp; answer queries</span></div></div>
+        <div class="box"><span class="box-icon">✨</span><div class="box-inner"><span class="box-name">Custom Modes</span><span class="box-desc">User-defined personas &amp; tool access</span></div></div>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    
+    <div class="layer layer-engine">
+      <div class="layer-label" style="color:#7c2d12">🧠 Reasoning Engine</div>
+      <div class="boxes">
+        <div class="box"><span class="box-icon">📜</span><div class="box-inner"><span class="box-name">System Prompt</span><span class="box-desc">Role + mode instructions</span></div></div>
+        <div class="box"><span class="box-icon">💬</span><div class="box-inner"><span class="box-name">Conversation History</span><span class="box-desc">Full turn transcript</span></div></div>
+        <div class="box"><span class="box-icon">📦</span><div class="box-inner"><span class="box-name">Context Window</span><span class="box-desc">200K–270K token capacity</span></div></div>
+        <div class="box"><span class="box-icon">🔄</span><div class="box-inner"><span class="box-name">Auto-Summarisation</span><span class="box-desc">Compacts when window fills</span></div></div>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    
+    <div class="layer layer-tools">
+      <div class="layer-label" style="color:#0c4a6e">🔧 Tool Categories</div>
+      <div class="boxes">
+        <div class="box"><span class="box-icon">📂</span><div class="box-inner"><span class="box-name">File Tools</span><span class="box-desc">read, write, search, diff</span></div></div>
+        <div class="box"><span class="box-icon">⚡</span><div class="box-inner"><span class="box-name">Execute Tools</span><span class="box-desc">Shell / terminal commands</span></div></div>
+        <div class="box"><span class="box-icon">🔌</span><div class="box-inner"><span class="box-name">MCP Tools</span><span class="box-desc">External APIs &amp; services</span></div></div>
+        <div class="box"><span class="box-icon">✅</span><div class="box-inner"><span class="box-name">Todo Tools</span><span class="box-desc">Task progress tracking</span></div></div>
+        <div class="box"><span class="box-icon">🤖</span><div class="box-inner"><span class="box-name">Subagent Tools</span><span class="box-desc">Spawn isolated sub-contexts</span></div></div>
+        <div class="box"><span class="box-icon">🔀</span><div class="box-inner"><span class="box-name">Mode Tools</span><span class="box-desc">Switch between modes</span></div></div>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    
+    <div class="layer layer-config">
+      <div class="layer-label" style="color:#713f12">🗂️ Configuration Layer</div>
+      <div class="boxes">
+        <div class="box"><span class="box-icon">📋</span><div class="box-inner"><span class="box-name">Rules</span><span class="box-desc">.bob/rules/ · global &amp; workspace</span></div></div>
+        <div class="box"><span class="box-icon">📚</span><div class="box-inner"><span class="box-name">Skills</span><span class="box-desc">.bob/skills/ · loaded on demand</span></div></div>
+        <div class="box"><span class="box-icon">🎣</span><div class="box-inner"><span class="box-name">Hooks</span><span class="box-desc">Lifecycle event automation</span></div></div>
+        <div class="box"><span class="box-icon">🚫</span><div class="box-inner"><span class="box-name">.bobignore</span><span class="box-desc">File access control</span></div></div>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    
+    <div class="layer layer-ext">
+      <div class="layer-label" style="color:#881337">🔌 MCP Extension Layer</div>
+      <div class="boxes">
+        <div class="box"><span class="box-icon">🖥️</span><div class="box-inner"><span class="box-name">Local MCP Servers</span><span class="box-desc">stdio · node / python / docker</span></div></div>
+        <div class="box"><span class="box-icon">☁️</span><div class="box-inner"><span class="box-name">Remote MCP Servers</span><span class="box-desc">SSE / HTTP transport</span></div></div>
+        <div class="box"><span class="box-icon">🛒</span><div class="box-inner"><span class="box-name">Marketplace</span><span class="box-desc">Community MCP servers &amp; modes</span></div></div>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    
+    <div class="layer layer-llm">
+      <div class="layer-label" style="color:#334155">⚛️ LLM Backend</div>
+      <div class="boxes">
+        <div class="box"><span class="box-icon">🧬</span><div class="box-inner"><span class="box-name">IBM Granite Models</span><span class="box-desc">Primary model family</span></div></div>
+        <div class="box"><span class="box-icon">🤖</span><div class="box-inner"><span class="box-name">Claude / Anthropic</span><span class="box-desc">Supported provider</span></div></div>
+        <div class="box"><span class="box-icon">🔁</span><div class="box-inner"><span class="box-name">watsonx.ai Platform</span><span class="box-desc">IBM cloud inference backend</span></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  
+  <div class="section-title">Context Window Composition (200K–270K tokens)</div>
+  <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:8px">
+    <div class="ctxbar">
+      <div style="width:12%;background:#6366f1">Sys</div>
+      <div style="width:8%;background:#8b5cf6">Tools</div>
+      <div style="width:5%;background:#a78bfa">Rules</div>
+      <div style="width:4%;background:#c4b5fd">Skills</div>
+      <div style="width:51%;background:#3b82f6">Messages &amp; History</div>
+      <div style="width:20%;background:#94a3b8;color:#fff">Reserved (20K)</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+      <span style="font-size:.72rem;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#6366f1;border-radius:3px;display:inline-block"></span>System Prompt — role, mode, Bob's core instructions</span>
+      <span style="font-size:.72rem;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#8b5cf6;border-radius:3px;display:inline-block"></span>Tool Definitions — built-in + MCP tool schemas</span>
+      <span style="font-size:.72rem;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#a78bfa;border-radius:3px;display:inline-block"></span>Rules — workspace + global .md rule files</span>
+      <span style="font-size:.72rem;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#c4b5fd;border-radius:3px;display:inline-block"></span>Skills — on-demand loaded SKILL.md instructions</span>
+      <span style="font-size:.72rem;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#3b82f6;border-radius:3px;display:inline-block"></span>Messages — prompts, replies, @mentions, tool results, file contents</span>
+      <span style="font-size:.72rem;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#94a3b8;border-radius:3px;display:inline-block"></span>Reserved — held for model's next response</span>
+    </div>
+  </div>
+
+  
+  <div class="section-title">Mode System Detail</div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-head"><span class="ci">🛠️</span>Agent Mode</div>
+      <div class="item"><span class="dot" style="background:#22c55e"></span><div><div class="item-bold">Purpose</div><div class="item-text">Write, modify, refactor code</div></div></div>
+      <div class="item"><span class="dot" style="background:#22c55e"></span><div><div class="item-bold">Tool Access</div><div class="item-text">read · edit · execute · mcp · todo · subagent · mode · skill</div></div></div>
+      <div class="item"><span class="dot" style="background:#22c55e"></span><div><div class="item-bold">Best For</div><div class="item-text">Feature implementation, bug fixes, code generation</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="ci">📐</span>Plan Mode</div>
+      <div class="item"><span class="dot" style="background:#a855f7"></span><div><div class="item-bold">Purpose</div><div class="item-text">Architecture, design, technical specs</div></div></div>
+      <div class="item"><span class="dot" style="background:#a855f7"></span><div><div class="item-bold">Tool Access</div><div class="item-text">read · mcp · skill (no edit / execute)</div></div></div>
+      <div class="item"><span class="dot" style="background:#a855f7"></span><div><div class="item-bold">Best For</div><div class="item-text">System design before coding begins</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="ci">❓</span>Ask Mode</div>
+      <div class="item"><span class="dot" style="background:#3b82f6"></span><div><div class="item-bold">Purpose</div><div class="item-text">Explain code, answer questions</div></div></div>
+      <div class="item"><span class="dot" style="background:#3b82f6"></span><div><div class="item-bold">Tool Access</div><div class="item-text">read · mcp · skill (read-only)</div></div></div>
+      <div class="item"><span class="dot" style="background:#3b82f6"></span><div><div class="item-bold">Best For</div><div class="item-text">Documentation lookup, code explanation</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="ci">✨</span>Custom Modes</div>
+      <div class="item"><span class="dot" style="background:#f59e0b"></span><div><div class="item-bold">Definition</div><div class="item-text">.bob/custom_modes.yaml (workspace or global)</div></div></div>
+      <div class="item"><span class="dot" style="background:#f59e0b"></span><div><div class="item-bold">Properties</div><div class="item-text">slug · name · roleDefinition · whenToUse · customInstructions · groups</div></div></div>
+      <div class="item"><span class="dot" style="background:#f59e0b"></span><div><div class="item-bold">Override</div><div class="item-text">Can override Agent / Plan / Ask defaults by matching slug</div></div></div>
+    </div>
+  </div>
+
+  
+  <div class="section-title">Tool Groups (Mode Permission Tokens)</div>
+  <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:8px">
+    <div class="tg-grid">
+      <div class="tg-item"><div class="tg-name">read</div><div class="tg-desc">Read files, directories, symbols</div></div>
+      <div class="tg-item"><div class="tg-name">edit</div><div class="tg-desc">Write, diff, insert file content (optional fileRegex restriction)</div></div>
+      <div class="tg-item"><div class="tg-name">execute</div><div class="tg-desc">Run shell / terminal commands</div></div>
+      <div class="tg-item"><div class="tg-name">mcp</div><div class="tg-desc">Access all connected MCP servers</div></div>
+      <div class="tg-item"><div class="tg-name">skill</div><div class="tg-desc">Load SKILL.md instruction files</div></div>
+      <div class="tg-item"><div class="tg-name">todo</div><div class="tg-desc">Create &amp; update task checklists</div></div>
+      <div class="tg-item"><div class="tg-name">subtask</div><div class="tg-desc">Spawn named subtask conversations</div></div>
+      <div class="tg-item"><div class="tg-name">subagent</div><div class="tg-desc">Spawn isolated subagent contexts</div></div>
+      <div class="tg-item"><div class="tg-name">mode</div><div class="tg-desc">Switch to a different mode mid-task</div></div>
+      <div class="tg-item"><div class="tg-name">workflow</div><div class="tg-desc">Launch pre-defined workflow sequences</div></div>
+    </div>
+  </div>
+
+  
+  <div class="section-title">Configuration Hierarchy</div>
+  <table class="flow-table" style="margin-bottom:8px">
+    <thead>
+      <tr><th>Layer</th><th>Location</th><th>Applies To</th><th>Precedence</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="tag tag-orange">Global Rules</span></td><td>~/.bob/rules/</td><td>Every workspace &amp; mode</td><td>2nd highest</td></tr>
+      <tr><td><span class="tag tag-blue">Workspace Rules</span></td><td>.bob/rules/ · .bob/rules-{mode}/</td><td>Current workspace only</td><td>Highest</td></tr>
+      <tr><td><span class="tag tag-purple">Custom Modes</span></td><td>.bob/custom_modes.yaml</td><td>Modes defined in file</td><td>Project &gt; Global &gt; Default</td></tr>
+      <tr><td><span class="tag tag-green">Skills</span></td><td>.bob/skills/ · ~/.bob/skills/</td><td>Loaded on demand per conversation</td><td>Additive</td></tr>
+      <tr><td><span class="tag tag-orange">.bobignore</span></td><td>Workspace root</td><td>File access via all tools</td><td>Blocking</td></tr>
+      <tr><td><span class="tag tag-blue">Hooks</span></td><td>.bob/hooks.yaml or settings</td><td>Lifecycle events (session/prompt/stop)</td><td>Sequential</td></tr>
+    </tbody>
+  </table>
+
+  
+  <div class="section-title">MCP Extension Architecture</div>
+  <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:8px">
+    <div class="cards" style="margin-bottom:0">
+      <div class="card" style="border-color:#fecdd3">
+        <div class="card-head"><span class="ci">🖥️</span>Local (stdio)</div>
+        <div class="item"><span class="dot" style="background:#f43f5e"></span><div class="item-text">Starts as child process via node / python / docker / uv</div></div>
+        <div class="item"><span class="dot" style="background:#f43f5e"></span><div class="item-text">Communicates over stdin/stdout</div></div>
+        <div class="item"><span class="dot" style="background:#f43f5e"></span><div class="item-text">Config: command, args, env in mcp_settings.json</div></div>
+      </div>
+      <div class="card" style="border-color:#bae6fd">
+        <div class="card-head"><span class="ci">☁️</span>Remote (SSE / HTTP)</div>
+        <div class="item"><span class="dot" style="background:#0ea5e9"></span><div class="item-text">Connects to external URL over Server-Sent Events or HTTP</div></div>
+        <div class="item"><span class="dot" style="background:#0ea5e9"></span><div class="item-text">Supports Bearer / API key auth</div></div>
+        <div class="item"><span class="dot" style="background:#0ea5e9"></span><div class="item-text">Tools discovered at runtime via MCP handshake</div></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:.78rem;color:#475569;background:#f8fafc;border-radius:8px;padding:10px 14px;border:1px solid #e2e8f0">
+      <strong>Marketplace:</strong> Community-contributed MCP servers (databases, cloud APIs, dev tools) and custom modes — installable directly from the Bob Settings panel.
+    </div>
+  </div>
+
+  
+  <div class="section-title">Request Execution Flow</div>
+  <table class="flow-table">
+    <thead>
+      <tr><th>#</th><th>Step</th><th>Component</th><th>Output</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>User sends prompt</td><td>VS Code / Shell UI</td><td>Raw text + context references</td></tr>
+      <tr><td>2</td><td>Mode selected</td><td>Mode System</td><td>Tool group permissions resolved</td></tr>
+      <tr><td>3</td><td>Context assembled</td><td>Context Engine</td><td>System prompt + rules + skills + history + file contents</td></tr>
+      <tr><td>4</td><td>Token check</td><td>Context Window Manager</td><td>Auto-summarise if &gt; limit; reserve 20K for response</td></tr>
+      <tr><td>5</td><td>LLM inference</td><td>IBM Granite / Claude via watsonx.ai</td><td>Tool calls + text response stream</td></tr>
+      <tr><td>6</td><td>Tool execution loop</td><td>Tool Runtime</td><td>File reads/writes, shell output, MCP results fed back into context</td></tr>
+      <tr><td>7</td><td>Todo tracking</td><td>Todo Engine</td><td>Checklist updated; in-progress → done transitions enforced</td></tr>
+      <tr><td>8</td><td>Response rendered</td><td>UI Panel</td><td>Markdown, code blocks, diffs, artifacts shown to user</td></tr>
+    </tbody>
+  </table>
+
+  
+  <div class="section-title">Deployment Variants</div>
+  <div class="cards" style="margin-bottom:0">
+    <div class="card">
+      <div class="card-head"><span class="ci">🖥️</span>Bob IDE (VS Code Extension)</div>
+      <div class="item"><span class="dot" style="background:#6366f1"></span><div class="item-text">Full agentic chat panel inside VS Code</div></div>
+      <div class="item"><span class="dot" style="background:#6366f1"></span><div class="item-text">All tool groups available</div></div>
+      <div class="item"><span class="dot" style="background:#6366f1"></span><div class="item-text">Marketplace, Carbon modes, Figma integration</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="ci">💻</span>Bob Shell (CLI)</div>
+      <div class="item"><span class="dot" style="background:#10b981"></span><div class="item-text">Terminal-native, no IDE required</div></div>
+      <div class="item"><span class="dot" style="background:#10b981"></span><div class="item-text">File ops · shell commands · MCP · process management</div></div>
+      <div class="item"><span class="dot" style="background:#10b981"></span><div class="item-text">Rules via .bobrules / .bobrules-{mode}</div></div>
+    </div>
+  </div>
+
+  <footer>IBM Bob — Architecture Blueprint  ·  Based on IBM Bob official documentation  ·  Made with IBM Bob</footer>
+</div>
+</body>
+</html>

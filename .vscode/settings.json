@@ -1,0 +1,15 @@
+{
+    "ibm-watsonx-orchestrate.envFile": "c:\\Users\\Alekhya Allatipalli\\OneDrive\\Desktop\\Travel_Agent\\nutrition_agent\\frontend\\index.html",
+    "liveServer.settings.port": 5500,
+    "liveServer.settings.root": "/nutrition_agent/frontend",
+    "liveServer.settings.CustomBrowser": "chrome",
+    "liveServer.settings.NoBrowser": false,
+    "liveServer.settings.ignoreFiles": [
+        ".vscode/**",
+        "**/*.py",
+        "**/*.txt",
+        "agents/**",
+        "tools/**",
+        "models/**"
+    ]
+}

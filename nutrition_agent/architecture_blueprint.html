@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI Nutrition Agent — System Architecture</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;background:#0f1923;color:#e2e8f0;min-height:100vh;padding:32px 24px 48px}
+
+/* ── PAGE ── */
+.page{max-width:1020px;margin:0 auto}
+
+/* ── HEADER ── */
+.hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:12px}
+.hdr-left h1{font-size:1.55rem;font-weight:800;letter-spacing:-0.5px;color:#fff}
+.hdr-left p{font-size:.82rem;color:#64748b;margin-top:4px}
+.hdr-badge{background:linear-gradient(135deg,#1d4ed8,#6366f1);border-radius:20px;padding:5px 16px;font-size:.72rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#fff;align-self:flex-start;white-space:nowrap}
+
+/* ── MAIN FLOW ── */
+.flow{display:flex;align-items:stretch;gap:0;position:relative}
+
+/* ── COLUMNS ── */
+.col{display:flex;flex-direction:column;align-items:center;position:relative;z-index:2}
+.col-wide{min-width:160px;max-width:180px}
+.col-mid{min-width:190px;max-width:210px}
+
+/* ── ARROW CONNECTOR ── */
+.connector{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:0 6px;position:relative;z-index:1;min-width:44px}
+.arrow-line{width:100%;height:2px;background:linear-gradient(90deg,#334155,#475569);position:relative;flex:none}
+.arrow-head{font-size:.8rem;color:#94a3b8;position:absolute;right:-4px;top:50%;transform:translateY(-50%)}
+.conn-label{font-size:.6rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#475569;text-align:center;margin-top:4px;white-space:nowrap}
+
+/* ── NODE BOXES ── */
+.node{border-radius:12px;padding:14px 16px;margin-bottom:10px;position:relative;width:100%;border:1.5px solid}
+.node-title{font-size:.78rem;font-weight:800;letter-spacing:.3px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.node-icon{font-size:1rem;flex-shrink:0}
+.node-body{font-size:.68rem;line-height:1.55;color:rgba(255,255,255,.65)}
+.node-body b{color:rgba(255,255,255,.9);font-weight:700}
+.node-chip{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.6rem;font-weight:700;margin:2px 2px 0 0;letter-spacing:.3px}
+
+/* colour themes */
+.n-user   {background:rgba(59,130,246,.12);border-color:#3b82f6;color:#93c5fd}
+.n-frontend{background:rgba(34,197,94,.10);border-color:#22c55e;color:#86efac}
+.n-agent  {background:rgba(139,92,246,.12);border-color:#8b5cf6;color:#c4b5fd}
+.n-rag    {background:rgba(245,158,11,.10);border-color:#f59e0b;color:#fcd34d}
+.n-ibm    {background:rgba(14,165,233,.12);border-color:#0ea5e9;color:#7dd3fc}
+.n-resp   {background:rgba(16,185,129,.10);border-color:#10b981;color:#6ee7b7}
+
+.chip-blue  {background:rgba(59,130,246,.25);color:#93c5fd}
+.chip-green {background:rgba(34,197,94,.25);color:#86efac}
+.chip-purple{background:rgba(139,92,246,.25);color:#c4b5fd}
+.chip-amber {background:rgba(245,158,11,.25);color:#fcd34d}
+.chip-sky   {background:rgba(14,165,233,.25);color:#7dd3fc}
+.chip-teal  {background:rgba(16,185,129,.25);color:#6ee7b7}
+
+/* ── CLOUD WRAPPER ── */
+.cloud{border:1.5px dashed;border-radius:16px;padding:16px 14px 12px;position:relative;margin-bottom:0;width:100%}
+.cloud-label{position:absolute;top:-10px;left:14px;font-size:.62rem;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:0 8px;background:#0f1923}
+.cloud-ibm{border-color:#0ea5e9;color:#0ea5e9}
+.cloud-iam{border-color:#f59e0b;color:#f59e0b}
+
+/* ── BOTTOM SECTION ── */
+.bottom{margin-top:28px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.b-card{background:rgba(255,255,255,.04);border:1.5px solid #1e293b;border-radius:12px;padding:16px}
+.b-card-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.b-item{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.72rem;color:#94a3b8}
+.b-item:last-child{border-bottom:none}
+.b-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;padding:14px 18px;background:rgba(255,255,255,.03);border:1px solid #1e293b;border-radius:10px}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:.68rem;color:#64748b}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:linear-gradient(90deg,transparent,#1e293b,transparent);margin:28px 0}
+
+/* ── RESPONSIVE ── */
+@media(max-width:720px){
+  .flow{flex-direction:column;align-items:center}
+  .connector{flex-direction:column;padding:6px 0;min-width:unset;width:44px}
+  .arrow-line{width:2px;height:36px;background:linear-gradient(180deg,#334155,#475569)}
+  .bottom{grid-template-columns:1fr}
+}
+
+/* ── FOOTER ── */
+footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid #1e293b;font-size:.7rem;color:#334155}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <h1>🥦 AI Nutrition Agent — System Architecture</h1>
+      <p>End-to-end data flow · Multi-agent pipeline · IBM watsonx.ai · Granite Foundation Model</p>
+    </div>
+    <div class="hdr-badge">IBM Cloud · watsonx.ai</div>
+  </div>
+
+  <!-- MAIN HORIZONTAL FLOW -->
+  <div class="flow">
+
+    <!-- ① USER -->
+    <div class="col col-wide">
+      <div class="node n-user" style="margin-bottom:0">
+        <div class="node-title"><span class="node-icon">👤</span>User</div>
+        <div class="node-body">
+          <b>Input Channels</b><br>
+          <span class="node-chip chip-blue">Web Browser</span>
+          <span class="node-chip chip-blue">Live Server :5500</span><br>
+          <span class="node-chip chip-blue">Chat Query</span>
+          <span class="node-chip chip-blue">Profile Form</span>
+        </div>
+      </div>
+      <div style="margin-top:10px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:10px;padding:10px 12px;width:100%">
+        <div style="font-size:.65rem;font-weight:800;color:#60a5fa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">User Data</div>
+        <div style="font-size:.65rem;color:#94a3b8;line-height:1.6">
+          Age · Gender · Weight · Height<br>
+          Goals · Activity Level<br>
+          Diet Preferences · Allergies<br>
+          Health Conditions
+        </div>
+      </div>
+    </div>
+
+    <!-- ARROW 1 -->
+    <div class="connector" style="align-self:center">
+      <div style="display:flex;align-items:center;gap:0;width:100%">
+        <div style="flex:1;height:2px;background:linear-gradient(90deg,#3b82f6,#22c55e)"></div>
+        <div style="color:#22c55e;font-size:.9rem">▶</div>
+      </div>
+      <div class="conn-label">HTTP/REST<br>JSON</div>
+    </div>
+
+    <!-- ② FRONTEND -->
+    <div class="col col-wide">
+      <div class="node n-frontend" style="margin-bottom:10px">
+        <div class="node-title"><span class="node-icon">🖥️</span>Frontend</div>
+        <div class="node-body">
+          <b>SPA (index.html)</b><br>
+          <span class="node-chip chip-green">Dashboard</span>
+          <span class="node-chip chip-green">Chat UI</span><br>
+          <span class="node-chip chip-green">Diet Plan</span>
+          <span class="node-chip chip-green">Meal Tracker</span><br>
+          <span class="node-chip chip-green">Food Analyzer</span>
+          <span class="node-chip chip-green">Health Advisor</span>
+        </div>
+      </div>
+      <div style="background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:10px 12px;width:100%">
+        <div style="font-size:.65rem;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Tech Stack</div>
+        <div style="font-size:.65rem;color:#94a3b8;line-height:1.6">
+          HTML5 · CSS3 · Vanilla JS<br>
+          localStorage state<br>
+          Live Server :5500<br>
+          fetch() → localhost:5000
+        </div>
+      </div>
+    </div>
+
+    <!-- ARROW 2 -->
+    <div class="connector" style="align-self:center">
+      <div style="display:flex;align-items:center;width:100%">
+        <div style="flex:1;height:2px;background:linear-gradient(90deg,#22c55e,#8b5cf6)"></div>
+        <div style="color:#8b5cf6;font-size:.9rem">▶</div>
+      </div>
+      <div class="conn-label">POST /api/*<br>JSON Body</div>
+    </div>
+
+    <!-- ③ FLASK BACKEND / AGENTS -->
+    <div class="col col-mid">
+      <div class="node n-agent" style="margin-bottom:10px">
+        <div class="node-title"><span class="node-icon">🤖</span>Agentic Backend</div>
+        <div class="node-body">
+          <b>Flask API · localhost:5000</b><br>
+          <span class="node-chip chip-purple">/api/nutrition</span>
+          <span class="node-chip chip-purple">/api/chat</span><br>
+          <span class="node-chip chip-purple">/api/analyze-food</span><br>
+          <span class="node-chip chip-purple">/api/weekly-plan</span><br>
+          <span class="node-chip chip-purple">/api/health-advice</span><br>
+          <span class="node-chip chip-purple">/api/food-recommendations</span>
+        </div>
+      </div>
+      <div style="background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:10px 12px;width:100%;margin-bottom:10px">
+        <div style="font-size:.65rem;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Multi-Agent Roles</div>
+        <div style="font-size:.65rem;color:#94a3b8;line-height:1.7">
+          🧠 <b style="color:#c4b5fd">Diet Planner</b> — meal generation<br>
+          💬 <b style="color:#c4b5fd">NutriBot</b> — chat Q&amp;A<br>
+          🔬 <b style="color:#c4b5fd">Food Analyst</b> — macro lookup<br>
+          ❤️ <b style="color:#c4b5fd">Health Advisor</b> — wellness tips<br>
+          🌟 <b style="color:#c4b5fd">Rec Engine</b> — food swaps
+        </div>
+      </div>
+      <div style="background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:10px 12px;width:100%">
+        <div style="font-size:.65rem;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Prompt Engineering</div>
+        <div style="font-size:.65rem;color:#94a3b8;line-height:1.6">
+          Profile injection<br>
+          Role-based system prompts<br>
+          Structured output schema<br>
+          Repetition penalty: 1.1
+        </div>
+      </div>
+    </div>
+
+    <!-- ARROW 3 -->
+    <div class="connector" style="align-self:center">
+      <div style="display:flex;align-items:center;width:100%">
+        <div style="flex:1;height:2px;background:linear-gradient(90deg,#8b5cf6,#0ea5e9)"></div>
+        <div style="color:#0ea5e9;font-size:.9rem">▶</div>
+      </div>
+      <div class="conn-label">HTTPS<br>Bearer Token</div>
+    </div>
+
+    <!-- ④ IBM CLOUD + GRANITE -->
+    <div class="col col-mid">
+      <div class="cloud cloud-iam" style="margin-bottom:10px">
+        <div class="cloud-label" style="color:#f59e0b">🔐 IAM Auth</div>
+        <div style="font-size:.65rem;color:#94a3b8;line-height:1.6">
+          iam.cloud.ibm.com<br>
+          API Key → Bearer Token<br>
+          Grant: apikey flow
+        </div>
+      </div>
+      <div class="cloud cloud-ibm">
+        <div class="cloud-label" style="color:#0ea5e9">☁️ IBM watsonx.ai</div>
+        <div class="node n-ibm" style="border-radius:10px;margin-bottom:8px">
+          <div class="node-title"><span class="node-icon">🧬</span>Granite 4 Foundation Model</div>
+          <div class="node-body">
+            <b>ibm/granite-4-h-small</b><br>
+            <span class="node-chip chip-sky">us-south region</span>
+            <span class="node-chip chip-sky">ML v1 API</span><br>
+            Max tokens: 1800<br>
+            Decoding: greedy
+          </div>
+        </div>
+        <div style="font-size:.65rem;color:#94a3b8;line-height:1.6;padding:0 4px">
+          Project ID: 80b9bb81-…<br>
+          Endpoint: ml.cloud.ibm.com<br>
+          Version: 2023-05-29
+        </div>
+      </div>
+    </div>
+
+    <!-- ARROW 4 -->
+    <div class="connector" style="align-self:center">
+      <div style="display:flex;align-items:center;width:100%">
+        <div style="flex:1;height:2px;background:linear-gradient(90deg,#0ea5e9,#10b981)"></div>
+        <div style="color:#10b981;font-size:.9rem">▶</div>
+      </div>
+      <div class="conn-label">Generated<br>Text Response</div>
+    </div>
+
+    <!-- ⑤ RESPONSE -->
+    <div class="col col-wide">
+      <div class="node n-resp" style="margin-bottom:10px">
+        <div class="node-title"><span class="node-icon">🥗</span>Nutrition Response</div>
+        <div class="node-body">
+          <span class="node-chip chip-teal">Daily Calorie Needs</span><br>
+          <span class="node-chip chip-teal">Macro Breakdown</span><br>
+          <span class="node-chip chip-teal">Full Meal Plan</span><br>
+          <span class="node-chip chip-teal">Food Analysis</span><br>
+          <span class="node-chip chip-teal">Health Advice</span><br>
+          <span class="node-chip chip-teal">Food Swaps</span>
+        </div>
+      </div>
+      <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 12px;width:100%">
+        <div style="font-size:.65rem;font-weight:800;color:#34d399;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Rendered As</div>
+        <div style="font-size:.65rem;color:#94a3b8;line-height:1.6">
+          Markdown → HTML<br>
+          Progress bars<br>
+          Weekly bar charts<br>
+          Water tracker<br>
+          Meal log table
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /flow -->
+
+  <div class="divider"></div>
+
+  <!-- RETURN FLOW LABEL -->
+  <div style="text-align:center;margin:-16px 0 16px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#334155">
+    ◀─────── Response flows back: Granite → Flask JSON → Frontend renderMarkdown() → User UI ───────◀
+  </div>
+
+  <!-- BOTTOM CARDS -->
+  <div class="bottom">
+
+    <!-- CORS + Network -->
+    <div class="b-card">
+      <div class="b-card-title">🌐 Network & Security</div>
+      <div class="b-item"><div class="b-dot" style="background:#3b82f6"></div><div><b style="color:#e2e8f0">CORS</b> — Flask-CORS, allow origin :5500</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#3b82f6"></div><div><b style="color:#e2e8f0">IAM Token</b> — refreshed per request</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#3b82f6"></div><div><b style="color:#e2e8f0">HTTPS</b> — TLS to IBM Cloud APIs</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#3b82f6"></div><div><b style="color:#e2e8f0">Timeout</b> — 120s per inference call</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#3b82f6"></div><div><b style="color:#e2e8f0">Ports</b> — Frontend :5500 · Backend :5000</div></div>
+    </div>
+
+    <!-- State & Data -->
+    <div class="b-card">
+      <div class="b-card-title">💾 Data & State</div>
+      <div class="b-item"><div class="b-dot" style="background:#22c55e"></div><div><b style="color:#e2e8f0">localStorage</b> — profile, meals, water, weekly</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#22c55e"></div><div><b style="color:#e2e8f0">No database</b> — stateless Flask backend</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#22c55e"></div><div><b style="color:#e2e8f0">Meal Tracker</b> — client-side arrays + localStorage</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#22c55e"></div><div><b style="color:#e2e8f0">Profile</b> — JSON persisted in browser</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#22c55e"></div><div><b style="color:#e2e8f0">Weekly data</b> — rolling 7-day calorie array</div></div>
+    </div>
+
+    <!-- APIs & Endpoints -->
+    <div class="b-card">
+      <div class="b-card-title">🔌 API Endpoints</div>
+      <div class="b-item"><div class="b-dot" style="background:#8b5cf6"></div><div><code style="font-size:.65rem;color:#c4b5fd">GET  /api/health</code> — status check</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#8b5cf6"></div><div><code style="font-size:.65rem;color:#c4b5fd">POST /api/nutrition</code> — daily plan</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#8b5cf6"></div><div><code style="font-size:.65rem;color:#c4b5fd">POST /api/chat</code> — NutriBot</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#8b5cf6"></div><div><code style="font-size:.65rem;color:#c4b5fd">POST /api/analyze-food</code> — macros</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#8b5cf6"></div><div><code style="font-size:.65rem;color:#c4b5fd">POST /api/weekly-plan</code> — 7-day</div></div>
+      <div class="b-item"><div class="b-dot" style="background:#8b5cf6"></div><div><code style="font-size:.65rem;color:#c4b5fd">POST /api/health-advice</code></div></div>
+      <div class="b-item"><div class="b-dot" style="background:#8b5cf6"></div><div><code style="font-size:.65rem;color:#c4b5fd">POST /api/food-recommendations</code></div></div>
+    </div>
+
+  </div><!-- /bottom -->
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div style="font-size:.65rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.6px;align-self:center;margin-right:4px">Legend:</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#3b82f6"></div>User Layer</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div>Frontend (SPA)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#8b5cf6"></div>Agentic Backend (Flask)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#f59e0b"></div>IAM Authentication</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#0ea5e9"></div>IBM watsonx.ai Cloud</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#10b981"></div>Personalized Response</div>
+    <div class="leg-item"><div style="width:24px;height:2px;background:linear-gradient(90deg,#3b82f6,#10b981);border-radius:2px;margin-right:2px"></div>Data Flow</div>
+  </div>
+
+  <footer>AI Nutrition Agent · System Architecture Blueprint · IBM Granite 4 · watsonx.ai · Flask + Vanilla JS · Made with IBM Bob</footer>
+
+</div>
+</body>
+</html>
